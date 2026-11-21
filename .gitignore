@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Node / TypeScript
+node_modules/
+frontend/dist/
+
 # Distribution / packaging
 .Python
 build/
@@ -153,6 +157,7 @@ activemq-data/
 .env
 .envrc
 .venv
+.venv/
 env/
 venv/
 ENV/
