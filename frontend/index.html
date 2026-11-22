@@ -111,28 +111,30 @@
         <div class="card highlight-card mb-24">
           <div class="highlight-row">
             <div>
-              <h3>Motor de Cotações das Seguradoras</h3>
+              <h3>Motor de Cotações (10 Seguradoras)</h3>
               <p>
-                Selecione um cliente (ou gere a base primeiro) e calcule as cotações das empresas com base em
-                <strong>idade do condutor</strong>, <strong>ano do carro</strong> e <strong>valor do veículo</strong>.
+                Digite o número do cliente (1 a 500) para comparar os valores calculados a partir da
+                <strong>idade do condutor</strong>, <strong>ano do carro</strong>, <strong>valor do veículo</strong> e <strong>sinistros</strong>.
               </p>
             </div>
             <div class="cotacao-controls">
-              <select id="select-cliente-cotacao" class="select-cliente">
-                <option value="">Gere os 500 clientes primeiro...</option>
-              </select>
-              <button id="btn-calcular-cotacoes" class="btn btn-primary">
-                Calcular Cotações
-              </button>
+              <input
+                type="text"
+                id="input-numero-cliente"
+                class="search-input"
+                placeholder="Nº do cliente (1 a 500)..."
+                inputmode="numeric"
+              />
             </div>
           </div>
+          <p id="erro-numero-cliente" class="hidden" style="color: #F87171; margin-top: 10px; font-size: 0.9rem;"></p>
         </div>
 
         <div id="resumo-cliente-cotacao" class="card mb-24 hidden"></div>
 
         <div class="quotes-grid" id="lista-cotacoes">
           <div class="card empty-state">
-            Nenhuma cotação gerada ainda. Selecione um cliente e clique em <strong>"Calcular Cotações"</strong>.
+            Nenhuma cotação gerada ainda. Digite o número do cliente (1 a 500) acima.
           </div>
         </div>
       </section>
@@ -149,7 +151,7 @@
       <section id="tab-diagnostico" class="tab-panel">
         <div class="card placeholder-card">
           <h3>Diagnóstico & Decisão Autônoma (Próxima etapa)</h3>
-          <p>Aqui integraremos o backend em Python (`FastAPI` + `scikit-learn`) e o `sinistros_db.json`.</p>
+          <p>Aqui integraremos o backend em Python (FastAPI + scikit-learn) e o <code>sinistros_db.json</code>.</p>
         </div>
       </section>
     </main>
