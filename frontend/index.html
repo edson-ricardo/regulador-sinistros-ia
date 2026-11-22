@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClaimsAI — MVP Seguros & Cotações</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- MENU LATERAL -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">IA</div>
+        <div>
+          <h1>ClaimsAI</h1>
+          <span>MVP Seguros & Risco</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu" id="nav-menu">
+        <button class="nav-item active" data-tab="clientes">
+          <span class="nav-dot"></span>
+          <span>1. Clientes (500)</span>
+        </button>
+        <button class="nav-item" data-tab="cotacoes">
+          <span class="nav-dot"></span>
+          <span>2. Cotações</span>
+        </button>
+        <button class="nav-item" data-tab="comportamento">
+          <span class="nav-dot"></span>
+          <span>3. Comportamento</span>
+        </button>
+        <button class="nav-item" data-tab="diagnostico">
+          <span class="nav-dot"></span>
+          <span>4. Diagnóstico & Seguros</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-badge">
+          <span class="pulse"></span>
+          MVP Ativo
+        </div>
+        <small>Base: 500 registros</small>
+      </div>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h2 id="page-title">Clientes — Base MVP (500)</h2>
+          <p id="page-subtitle">Gere a base de 500 clientes com idade do condutor, ano do carro, valor do veículo e sinistros.</p>
+        </div>
+        <div class="topbar-actions">
+          <span class="counter-pill">Clientes gerados: <strong id="total-registros">0</strong></span>
+        </div>
+      </header>
+
+      <!-- TELA 1: CLIENTES (500) -->
+      <section id="tab-clientes" class="tab-panel active">
+        <div class="card highlight-card mb-24">
+          <div class="highlight-row">
+            <div>
+              <h3>Gerador de Base MVP (500 Clientes)</h3>
+              <p>
+                Aplica as faixas de idade do condutor (18–25 alto risco, 26–69/79 intermediário, 70+ análise/vistoria)
+                e idade do veículo (até 10–15 anos padrão, importados com limite menor e 15–30+ anos com restrição/cobertura específica).
+              </p>
+            </div>
+            <button id="btn-gerar-base" class="btn btn-primary">
+              ⚡ Gerar 500 Clientes
+            </button>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="table-header">
+            <h3>Base de Clientes</h3>
+            <input type="text" id="busca-cliente" class="search-input" placeholder="Buscar por ID, nome ou ano..." />
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Cliente</th>
+                  <th>Idade Condutor</th>
+                  <th>Faixa Condutor</th>
+                  <th>Ano Carro</th>
+                  <th>Perfil Veículo</th>
+                  <th>Valor Veículo</th>
+                  <th>Qtd. Sinistros</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-clientes-body">
+                <tr>
+                  <td colspan="8" class="empty-state">
+                    Clique em <strong>"Gerar 500 Clientes"</strong> para montar a base inicial.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TELA 2: COTAÇÕES -->
+      <section id="tab-cotacoes" class="tab-panel">
+        <div class="card highlight-card mb-24">
+          <div class="highlight-row">
+            <div>
+              <h3>Motor de Cotações das Seguradoras</h3>
+              <p>
+                Selecione um cliente (ou gere a base primeiro) e calcule as cotações das empresas com base em
+                <strong>idade do condutor</strong>, <strong>ano do carro</strong> e <strong>valor do veículo</strong>.
+              </p>
+            </div>
+            <div class="cotacao-controls">
+              <select id="select-cliente-cotacao" class="select-cliente">
+                <option value="">Gere os 500 clientes primeiro...</option>
+              </select>
+              <button id="btn-calcular-cotacoes" class="btn btn-primary">
+                Calcular Cotações
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="resumo-cliente-cotacao" class="card mb-24 hidden"></div>
+
+        <div class="quotes-grid" id="lista-cotacoes">
+          <div class="card empty-state">
+            Nenhuma cotação gerada ainda. Selecione um cliente e clique em <strong>"Calcular Cotações"</strong>.
+          </div>
+        </div>
+      </section>
+
+      <!-- TELA 3: COMPORTAMENTO -->
+      <section id="tab-comportamento" class="tab-panel">
+        <div class="card placeholder-card">
+          <h3>Comportamento da Base (Próxima etapa)</h3>
+          <p>Aqui veremos a distribuição por faixa etária, idade do veículo e histórico de sinistros.</p>
+        </div>
+      </section>
+
+      <!-- TELA 4: DIAGNÓSTICO & SEGUROS -->
+      <section id="tab-diagnostico" class="tab-panel">
+        <div class="card placeholder-card">
+          <h3>Diagnóstico & Decisão Autônoma (Próxima etapa)</h3>
+          <p>Aqui integraremos o backend em Python (`FastAPI` + `scikit-learn`) e o `sinistros_db.json`.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="./dist/app.js"></script>
+</body>
+</html>
