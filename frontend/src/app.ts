@@ -1,11 +1,16 @@
 const ANO_ATUAL = 2026;
 const QUANTIDADE_CLIENTES = 500;
+const API_URL = 'http://127.0.0.1:8000';
 
 type FaixaCondutor = 'Jovem (18–25)' | 'Intermediária (26–69)' | 'Sênior (70+)';
 type PerfilVeiculo = 'Padrão (até 15 anos)' | 'Importado (limite menor)' | 'Antigo / Restrito (15–35+ anos)';
 type CoberturaTipo = 'Compreensiva' | 'Roubo, Furto e Terceiros (Específica)';
 type FormaPagamento = 'Pix (À vista)' | 'Boleto (Parcelado)' | 'Cartão de Crédito (Parcelado)';
 type StatusSolicitacaoSeguradora = 'AGUARDANDO SEGURADORA' | 'APROVADA PELA SEGURADORA' | 'RECUSADA PELA SEGURADORA';
+type OrigemAprovacao =
+  | 'Aprovado direto pela IA'
+  | 'Aprovado pelo Aceite Automático da IA'
+  | 'Aprovado pela Seguradora após triagem';
 
 interface Cliente {
   id: string;
@@ -22,6 +27,7 @@ interface Cliente {
 interface PoliticaSeguradora {
   id: string;
   nome: string;
+  apetiteRisco: 'Conservador' | 'Equilibrado' | 'Flexível / Especializado';
   taxaBase: number;
   pesoJovem: number;
   pesoSenior: number;
@@ -41,6 +47,15 @@ interface ResultadoCotacao {
   scoreRiscoIA: number;
 }
 
+interface RegistroAprovadoIA {
+  codigo: string;
+  dataRegistro: string;
+  cliente: Cliente;
+  cotacao: ResultadoCotacao;
+  modalidade: 'Aprovação Direta IA' | 'Aceite Automático IA';
+  justificativa: string;
+}
+
 interface SolicitacaoRiscoSeguradora {
   id: string;
   cliente: Cliente;
@@ -56,53 +71,115 @@ interface ApoliceFinalizada {
   cotacao: ResultadoCotacao;
   formaPagamento: FormaPagamento;
   detalhePagamento: string;
-  origemAprovacao: 'Aprovado direto pela IA' | 'Aprovado pela Seguradora após análise de risco';
+  origemAprovacao: OrigemAprovacao;
+}
+
+interface RespostaAvaliacaoAPI {
+  score_risco_ml: number;
+  encaminhar_seguradora: boolean;
+  motivo: string;
+  motor: string;
 }
 
 const TITULOS_ABAS: Record<string, { titulo: string; subtitulo: string }> = {
+  criterios: {
+    titulo: 'Critérios das Seguradoras & Aceite',
+    subtitulo: 'Visualização dos parâmetros, pesos e limites aplicados por cada seguradora na precificação e análise de risco.'
+  },
   clientes: {
     titulo: 'Clientes — Base de Perfis (500)',
     subtitulo: 'Visão de gestão da base de clientes com idade do condutor, ano do carro, valor do veículo e sinistros.'
   },
   cotacoes: {
     titulo: 'Cotações — Simulação & Contratação',
-    subtitulo: 'O cliente escolhe a cotação e clica em Contratar: IA libera o pagamento ou envia para análise da seguradora.'
+    subtitulo: 'O cliente escolhe a cotação e clica em Contratar: IA aprova/aceita e libera o pagamento ou envia casos complexos para triagem.'
   },
-  seguradora: {
-    titulo: 'Seguradora — Análise de Risco',
-    subtitulo: 'Recebe apenas as contratações sinalizadas como risco pela IA para aprovar ou recusar.'
+  'aprovadas-ia': {
+    titulo: 'Aprovadas IA — Aceite Autônomo',
+    subtitulo: 'Contratações aprovadas ou aceitas automaticamente pela IA sem necessidade de intervenção da seguradora.'
   },
-  finalizado: {
-    titulo: 'Finalizado — Documento da Apólice',
+  seguradoras: {
+    titulo: 'Seguradoras — Triagem de Casos Complexos',
+    subtitulo: 'Recebe apenas as contratações que a IA considerou complexas/de risco para aprovar ou recusar.'
+  },
+  apolices: {
+    titulo: 'Apólices — Documento do Seguro',
     subtitulo: 'Consulta das apólices emitidas após aprovação e pagamento.'
   }
 };
 
 const SEGURADORAS_BRASIL: PoliticaSeguradora[] = [
-  { id: 'porto-seguro', nome: 'Porto Seguro', taxaBase: 0.036, pesoJovem: 1.42, pesoSenior: 1.18, pesoImportado: 1.25, pesoAntigo: 1.30, pesoSinistro: 0.14, limiteAnosCompreensivo: 20 },
-  { id: 'tokio-marine', nome: 'Tokio Marine', taxaBase: 0.034, pesoJovem: 1.38, pesoSenior: 1.15, pesoImportado: 1.22, pesoAntigo: 1.25, pesoSinistro: 0.12, limiteAnosCompreensivo: 18 },
-  { id: 'allianz', nome: 'Allianz Seguros', taxaBase: 0.035, pesoJovem: 1.40, pesoSenior: 1.20, pesoImportado: 1.18, pesoAntigo: 1.32, pesoSinistro: 0.13, limiteAnosCompreensivo: 15 },
-  { id: 'hdi', nome: 'HDI Seguros', taxaBase: 0.033, pesoJovem: 1.35, pesoSenior: 1.16, pesoImportado: 1.24, pesoAntigo: 1.22, pesoSinistro: 0.12, limiteAnosCompreensivo: 20 },
-  { id: 'bradesco', nome: 'Bradesco Seguros', taxaBase: 0.035, pesoJovem: 1.45, pesoSenior: 1.18, pesoImportado: 1.20, pesoAntigo: 1.28, pesoSinistro: 0.15, limiteAnosCompreensivo: 18 },
-  { id: 'mapfre', nome: 'Mapfre Seguros', taxaBase: 0.032, pesoJovem: 1.36, pesoSenior: 1.14, pesoImportado: 1.26, pesoAntigo: 1.20, pesoSinistro: 0.11, limiteAnosCompreensivo: 20 },
-  { id: 'azul', nome: 'Azul Seguros', taxaBase: 0.030, pesoJovem: 1.32, pesoSenior: 1.12, pesoImportado: 1.30, pesoAntigo: 1.24, pesoSinistro: 0.12, limiteAnosCompreensivo: 15 },
-  { id: 'suhai', nome: 'Suhai Seguradora', taxaBase: 0.028, pesoJovem: 1.22, pesoSenior: 1.08, pesoImportado: 1.15, pesoAntigo: 1.10, pesoSinistro: 0.10, limiteAnosCompreensivo: 10 },
-  { id: 'zurich', nome: 'Zurich Seguros', taxaBase: 0.034, pesoJovem: 1.39, pesoSenior: 1.17, pesoImportado: 1.21, pesoAntigo: 1.26, pesoSinistro: 0.13, limiteAnosCompreensivo: 18 },
-  { id: 'youse', nome: 'Youse Seguros', taxaBase: 0.031, pesoJovem: 1.34, pesoSenior: 1.15, pesoImportado: 1.28, pesoAntigo: 1.27, pesoSinistro: 0.12, limiteAnosCompreensivo: 15 }
+  { id: 'porto-seguro', nome: 'Porto Seguro', apetiteRisco: 'Equilibrado', taxaBase: 0.036, pesoJovem: 1.42, pesoSenior: 1.18, pesoImportado: 1.25, pesoAntigo: 1.30, pesoSinistro: 0.14, limiteAnosCompreensivo: 20 },
+  { id: 'tokio-marine', nome: 'Tokio Marine', apetiteRisco: 'Equilibrado', taxaBase: 0.034, pesoJovem: 1.38, pesoSenior: 1.15, pesoImportado: 1.22, pesoAntigo: 1.25, pesoSinistro: 0.12, limiteAnosCompreensivo: 18 },
+  { id: 'allianz', nome: 'Allianz Seguros', apetiteRisco: 'Conservador', taxaBase: 0.035, pesoJovem: 1.40, pesoSenior: 1.20, pesoImportado: 1.18, pesoAntigo: 1.32, pesoSinistro: 0.13, limiteAnosCompreensivo: 15 },
+  { id: 'hdi', nome: 'HDI Seguros', apetiteRisco: 'Equilibrado', taxaBase: 0.033, pesoJovem: 1.35, pesoSenior: 1.16, pesoImportado: 1.24, pesoAntigo: 1.22, pesoSinistro: 0.12, limiteAnosCompreensivo: 20 },
+  { id: 'bradesco', nome: 'Bradesco Seguros', apetiteRisco: 'Conservador', taxaBase: 0.035, pesoJovem: 1.45, pesoSenior: 1.18, pesoImportado: 1.20, pesoAntigo: 1.28, pesoSinistro: 0.15, limiteAnosCompreensivo: 18 },
+  { id: 'mapfre', nome: 'Mapfre Seguros', apetiteRisco: 'Equilibrado', taxaBase: 0.032, pesoJovem: 1.36, pesoSenior: 1.14, pesoImportado: 1.26, pesoAntigo: 1.20, pesoSinistro: 0.11, limiteAnosCompreensivo: 20 },
+  { id: 'azul', nome: 'Azul Seguros', apetiteRisco: 'Flexível / Especializado', taxaBase: 0.030, pesoJovem: 1.32, pesoSenior: 1.12, pesoImportado: 1.30, pesoAntigo: 1.24, pesoSinistro: 0.12, limiteAnosCompreensivo: 15 },
+  { id: 'suhai', nome: 'Suhai Seguradora', apetiteRisco: 'Flexível / Especializado', taxaBase: 0.028, pesoJovem: 1.22, pesoSenior: 1.08, pesoImportado: 1.15, pesoAntigo: 1.10, pesoSinistro: 0.10, limiteAnosCompreensivo: 10 },
+  { id: 'zurich', nome: 'Zurich Seguros', apetiteRisco: 'Equilibrado', taxaBase: 0.034, pesoJovem: 1.39, pesoSenior: 1.17, pesoImportado: 1.21, pesoAntigo: 1.26, pesoSinistro: 0.13, limiteAnosCompreensivo: 18 },
+  { id: 'youse', nome: 'Youse Seguros', apetiteRisco: 'Equilibrado', taxaBase: 0.031, pesoJovem: 1.34, pesoSenior: 1.15, pesoImportado: 1.28, pesoAntigo: 1.27, pesoSinistro: 0.12, limiteAnosCompreensivo: 15 }
 ];
 
 let clientesBase: Cliente[] = [];
 let ultimasCotacoesAtuais: { cliente: Cliente; cotacoes: ResultadoCotacao[] } | null = null;
+let aprovadasIA: RegistroAprovadoIA[] = [];
 let solicitacoesSeguradora: SolicitacaoRiscoSeguradora[] = [];
 let apolicesFinalizadas: ApoliceFinalizada[] = [];
 let pagamentoPendente: {
   cliente: Cliente;
   cotacao: ResultadoCotacao;
-  origemAprovacao: 'Aprovado direto pela IA' | 'Aprovado pela Seguradora após análise de risco';
+  origemAprovacao: OrigemAprovacao;
 } | null = null;
 
 function formatarMoeda(valor: number): string {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function formatarPercentualTaxa(taxa: number): string {
+  return (taxa * 100).toFixed(1).replace('.', ',') + '%';
+}
+
+function renderizarCriteriosSeguradoras(): void {
+  const grade = document.getElementById('grade-criterios-seguradoras');
+  if (!grade) return;
+
+  grade.innerHTML = SEGURADORAS_BRASIL.map((pol, idx) => {
+    const badgeClass =
+      pol.apetiteRisco === 'Conservador'
+        ? 'badge-risk'
+        : pol.apetiteRisco === 'Flexível / Especializado'
+        ? 'badge-balanced'
+        : 'badge-senior';
+
+    const sinistroPct = `+${Math.round(pol.pesoSinistro * 100)}% por sinistro`;
+
+    return `
+      <div class="quote-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <h4 style="margin: 0;">${idx + 1}. ${pol.nome}</h4>
+          <span class="badge ${badgeClass}">${pol.apetiteRisco}</span>
+        </div>
+
+        <div class="quote-price" style="font-size: 1.15rem; margin-bottom: 10px;">
+          Taxa base: ${formatarPercentualTaxa(pol.taxaBase)} <small style="font-size: 0.8rem; font-weight: 500;">do valor do carro</small>
+        </div>
+
+        <div class="quote-detail" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 0.88rem;">
+          <div><strong>Jovem (18–25):</strong> ${pol.pesoJovem.toFixed(2)}x</div>
+          <div><strong>Sênior (70+):</strong> ${pol.pesoSenior.toFixed(2)}x</div>
+          <div><strong>Importado:</strong> ${pol.pesoImportado.toFixed(2)}x</div>
+          <div><strong>Antigo (&gt;15a):</strong> ${pol.pesoAntigo.toFixed(2)}x</div>
+          <div><strong>Sinistros:</strong> ${sinistroPct}</div>
+          <div><strong>Limite Comp.:</strong> até ${pol.limiteAnosCompreensivo} anos</div>
+        </div>
+
+        <p class="quote-detail" style="margin-top: 10px; font-size: 0.84rem; color: #94A3B8;">
+          <strong>Aceite Automático IA:</strong> score &lt; 65, até 1 sinistro e veículo até ${pol.limiteAnosCompreensivo} anos são aceitos automaticamente pela IA (aba <em>4. Aprovadas IA</em>); casos complexos vão para <em>5. Seguradoras</em>.
+        </p>
+      </div>
+    `;
+  }).join('');
 }
 
 function classificarCondutor(idade: number): FaixaCondutor {
@@ -151,6 +228,7 @@ function gerarClientes500(): void {
   }
 
   clientesBase = lista;
+  aprovadasIA = [];
   solicitacoesSeguradora = [];
   apolicesFinalizadas = [];
   pagamentoPendente = null;
@@ -161,6 +239,7 @@ function gerarClientes500(): void {
   }
 
   renderizarTabelaClientes();
+  renderizarAprovadasIA();
   renderizarSolicitacoesSeguradora();
   renderizarApolicesFinalizadas();
 }
@@ -352,7 +431,7 @@ function buscarClientePorNumeroTexto(
   }
 
   if (clientesBase.length === 0) {
-    return { erro: 'Gere a base de 500 clientes na aba 1 antes de pesquisar.' };
+    return { erro: 'Gere a base de 500 clientes na aba 2. Clientes antes de pesquisar.' };
   }
 
   if (!/^\d+$/.test(limpo)) {
@@ -377,13 +456,13 @@ function buscarClientePorNumeroTexto(
 }
 
 function calcularScoreRiscoIA(cliente: Cliente, idadeVeiculo: number): number {
-  let score = 15;
-  if (cliente.idadeCondutor <= 25) score += 25;
-  else if (cliente.idadeCondutor >= 70) score += 18;
+  let score = 12;
+  if (cliente.idadeCondutor <= 25) score += 18;
+  else if (cliente.idadeCondutor >= 70) score += 12;
 
-  if (cliente.importado) score += 12;
-  if (idadeVeiculo > 15) score += 18;
-  score += Math.min(30, cliente.quantidadeSinistros * 10);
+  if (cliente.importado) score += 8;
+  if (idadeVeiculo > 15) score += 12;
+  score += Math.min(24, cliente.quantidadeSinistros * 8);
 
   return Math.min(99, Math.max(5, score));
 }
@@ -435,35 +514,130 @@ function calcularCotacaoPorEmpresa(cliente: Cliente, politica: PoliticaSegurador
   };
 }
 
-function avaliarRiscoContratacaoIA(cliente: Cliente, cotacao: ResultadoCotacao): {
-  temRisco: boolean;
-  motivoRisco: string;
-} {
+interface ResultadoDecisaoIA {
+  decisao: 'APROVADO_DIRETO' | 'ACEITE_AUTOMATICO_IA' | 'TRIAGEM_SEGURADORA';
+  motivo: string;
+  score: number;
+  motor: string;
+}
+
+/**
+ * Critério de Aceite Automático da IA:
+ * - Se há complexidade alta (2+ sinistros, carro acima do limite de anos da seguradora, ou score >= 65),
+ *   a IA não está segura sozinha e envia para TRIAGEM_SEGURADORA (aba 5).
+ * - Se há pontos moderados (score entre 30 e 64 ou faixa etária/importado com até 1 sinistro e carro dentro do limite),
+ *   a IA aplica o Aceite Automático (ACEITE_AUTOMATICO_IA -> aba 4. Aprovadas IA + libera pagamento).
+ * - Se não há fatores moderados nem complexos, é APROVADO_DIRETO (aba 4. Aprovadas IA + libera pagamento).
+ */
+function classificarDecisaoLocalFallback(
+  cliente: Cliente,
+  cotacao: ResultadoCotacao,
+  scoreOverride?: number,
+  motorNome: string = 'Motor local (fallback)'
+): ResultadoDecisaoIA {
   const idadeVeiculo = Math.max(0, ANO_ATUAL - cliente.anoCarro);
   const politica = SEGURADORAS_BRASIL.find((p) => p.id === cotacao.seguradoraId);
   const limiteAnos = politica?.limiteAnosCompreensivo ?? 15;
-  const motivos: string[] = [];
+  const score = scoreOverride ?? cotacao.scoreRiscoIA;
 
-  if (cliente.idadeCondutor <= 25) {
-    motivos.push('condutor jovem (18–25 anos)');
-  }
-  if (cliente.idadeCondutor >= 70) {
-    motivos.push('condutor sênior (70+ anos)');
-  }
+  const motivosComplexos: string[] = [];
   if (cliente.quantidadeSinistros >= 2) {
-    motivos.push(`${cliente.quantidadeSinistros} sinistros no histórico`);
+    motivosComplexos.push(`${cliente.quantidadeSinistros} sinistros no histórico`);
   }
   if (idadeVeiculo > limiteAnos) {
-    motivos.push(`veículo com ${idadeVeiculo} anos acima do limite compreensivo (${limiteAnos} anos)`);
+    motivosComplexos.push(`veículo com ${idadeVeiculo} anos acima do limite (${limiteAnos} anos)`);
   }
-  if (cotacao.scoreRiscoIA >= 55) {
-    motivos.push(`score de risco IA elevado (${cotacao.scoreRiscoIA}/100)`);
+  if (score >= 65) {
+    motivosComplexos.push(`score de risco elevado (${score}/100)`);
+  }
+
+  if (motivosComplexos.length > 0) {
+    return {
+      decisao: 'TRIAGEM_SEGURADORA',
+      motivo: motivosComplexos.join(' · '),
+      score,
+      motor: motorNome
+    };
+  }
+
+  const fatoresModerados: string[] = [];
+  if (cliente.idadeCondutor <= 25) fatoresModerados.push('condutor jovem (18–25)');
+  if (cliente.idadeCondutor >= 70) fatoresModerados.push('condutor sênior (70+)');
+  if (cliente.importado) fatoresModerados.push('veículo importado');
+  if (cliente.quantidadeSinistros === 1) fatoresModerados.push('1 sinistro anterior');
+  if (score >= 30) fatoresModerados.push(`score moderado (${score}/100)`);
+
+  if (fatoresModerados.length > 0) {
+    return {
+      decisao: 'ACEITE_AUTOMATICO_IA',
+      motivo: `Aceite automático pela IA: ${fatoresModerados.join(' · ')}, sem agravantes críticos`,
+      score,
+      motor: motorNome
+    };
   }
 
   return {
-    temRisco: motivos.length > 0,
-    motivoRisco: motivos.length > 0 ? motivos.join(' · ') : 'Perfil dentro dos parâmetros seguros da IA'
+    decisao: 'APROVADO_DIRETO',
+    motivo: `Perfil de baixo risco validado pela IA (score ${score}/100)`,
+    score,
+    motor: motorNome
   };
+}
+
+async function avaliarContratacaoComIA(
+  cliente: Cliente,
+  cotacao: ResultadoCotacao
+): Promise<ResultadoDecisaoIA> {
+  const politica = SEGURADORAS_BRASIL.find((p) => p.id === cotacao.seguradoraId);
+  const limiteAnos = politica?.limiteAnosCompreensivo ?? 15;
+
+  try {
+    const resp = await fetch(`${API_URL}/avaliar-risco`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idade_condutor: cliente.idadeCondutor,
+        ano_carro: cliente.anoCarro,
+        importado: cliente.importado,
+        valor_veiculo: cliente.valorVeiculo,
+        quantidade_sinistros: cliente.quantidadeSinistros,
+        limite_anos_seguradora: limiteAnos,
+        ano_atual: ANO_ATUAL
+      })
+    });
+
+    if (!resp.ok) {
+      throw new Error(`HTTP ${resp.status}`);
+    }
+
+    const data = (await resp.json()) as RespostaAvaliacaoAPI;
+    return classificarDecisaoLocalFallback(
+      cliente,
+      cotacao,
+      data.score_risco_ml,
+      data.motor
+    );
+  } catch {
+    return classificarDecisaoLocalFallback(cliente, cotacao);
+  }
+}
+
+function registrarAprovacaoIA(
+  cliente: Cliente,
+  cotacao: ResultadoCotacao,
+  modalidade: 'Aprovação Direta IA' | 'Aceite Automático IA',
+  justificativa: string
+): void {
+  const seq = String(aprovadasIA.length + 1).padStart(3, '0');
+  aprovadasIA.unshift({
+    codigo: `IA-${ANO_ATUAL}-${cliente.id.replace('CLI-', '')}-${seq}`,
+    dataRegistro: new Date().toLocaleString('pt-BR'),
+    cliente,
+    cotacao,
+    modalidade,
+    justificativa
+  });
+  renderizarAprovadasIA();
 }
 
 function finalizarEmissaoApolice(
@@ -471,7 +645,7 @@ function finalizarEmissaoApolice(
   cotacao: ResultadoCotacao,
   formaPagamento: FormaPagamento,
   detalhePagamento: string,
-  origemAprovacao: 'Aprovado direto pela IA' | 'Aprovado pela Seguradora após análise de risco'
+  origemAprovacao: OrigemAprovacao
 ): ApoliceFinalizada {
   const seq = String(apolicesFinalizadas.length + 1).padStart(3, '0');
   const numeroApolice = `AP-${ANO_ATUAL}-${cliente.id.replace('CLI-', '')}-${seq}`;
@@ -493,11 +667,51 @@ function finalizarEmissaoApolice(
   renderizarApolicesFinalizadas();
 
   exibirAvisoFluxo(
-    `<strong>Contratação concluída!</strong> Apólice <strong>${apolice.numeroApolice}</strong> emitida via <strong>${formaPagamento}</strong>. Clique na aba <strong>4. Finalizado</strong> para visualizar o documento completo.`,
+    `<strong>Contratação concluída!</strong> Apólice <strong>${apolice.numeroApolice}</strong> emitida via <strong>${formaPagamento}</strong>. Clique na aba <strong>6. Apólices</strong> para visualizar o documento completo.`,
     '#34D399'
   );
 
   return apolice;
+}
+
+function renderizarAprovadasIA(): void {
+  const container = document.getElementById('lista-aprovadas-ia');
+  if (!container) return;
+
+  if (aprovadasIA.length === 0) {
+    container.innerHTML = `
+      <div class="card empty-state">
+        Nenhuma contratação aprovada/aceita pela IA ainda.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = aprovadasIA
+    .map((item) => `
+      <div class="card mb-24" style="border-left: 4px solid #34D399;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <h4>${item.codigo} — ${item.cotacao.seguradora}</h4>
+          <span class="badge badge-balanced">${item.modalidade}</span>
+        </div>
+        <p style="margin: 8px 0 6px 0;">
+          <strong>Cliente:</strong> ${item.cliente.nome} (${item.cliente.id}) ·
+          <strong>Idade:</strong> ${item.cliente.idadeCondutor} anos ·
+          <strong>Veículo:</strong> ${item.cliente.anoCarro} (${formatarMoeda(item.cliente.valorVeiculo)}) ·
+          <strong>Sinistros:</strong> ${item.cliente.quantidadeSinistros}
+        </p>
+        <p style="margin: 0 0 6px 0;">
+          <strong>Prêmio:</strong> ${formatarMoeda(item.cotacao.valorAnual)}/ano (${formatarMoeda(item.cotacao.valorMensal)}/mês) ·
+          <strong>Cobertura:</strong> ${item.cotacao.coberturaSugerida} ·
+          <strong>Score:</strong> ${item.cotacao.scoreRiscoIA}/100
+        </p>
+        <p style="margin: 0; color: #34D399;">
+          <strong>Critério da IA:</strong> ${item.justificativa}
+        </p>
+        <small style="color: #94A3B8; display: block; margin-top: 6px;">Registrado em: ${item.dataRegistro}</small>
+      </div>
+    `)
+    .join('');
 }
 
 function renderizarSolicitacoesSeguradora(): void {
@@ -507,7 +721,7 @@ function renderizarSolicitacoesSeguradora(): void {
   if (solicitacoesSeguradora.length === 0) {
     container.innerHTML = `
       <div class="card empty-state">
-        Nenhuma solicitação de risco enviada pela IA para a seguradora no momento.
+        Nenhuma solicitação complexa enviada para triagem das seguradoras no momento.
       </div>
     `;
     return;
@@ -553,10 +767,10 @@ function renderizarSolicitacoesSeguradora(): void {
           <p style="margin: 0 0 6px 0;">
             <strong>Cotação escolhida:</strong> ${formatarMoeda(sol.cotacao.valorAnual)}/ano (${formatarMoeda(sol.cotacao.valorMensal)}/mês) ·
             <strong>Cobertura:</strong> ${sol.cotacao.coberturaSugerida} ·
-            <strong>Score IA:</strong> ${sol.cotacao.scoreRiscoIA}/100
+            <strong>Score de Risco:</strong> ${sol.cotacao.scoreRiscoIA}/100
           </p>
           <p style="margin: 0; color: #FBBF24;">
-            <strong>Motivo do alerta de risco pela IA:</strong> ${sol.motivoRiscoIA}
+            <strong>Motivo da triagem pela IA:</strong> ${sol.motivoRiscoIA}
           </p>
           ${acoesHtml}
         </div>
@@ -572,7 +786,7 @@ function renderizarApolicesFinalizadas(): void {
   if (apolicesFinalizadas.length === 0) {
     container.innerHTML = `
       <div class="card empty-state">
-        Nenhuma apólice finalizada ainda. Conclua uma contratação com pagamento para gerar o documento aqui.
+        Nenhuma apólice emitida ainda. Conclua uma contratação com pagamento para gerar o documento aqui.
       </div>
     `;
     return;
@@ -667,7 +881,7 @@ function renderizarCotacoes(): void {
     <strong>Veículo:</strong> ${formatarMoeda(cliente.valorVeiculo)} ·
     <strong>Sinistros:</strong> ${cliente.quantidadeSinistros}<br/>
     <small style="color: #94A3B8;">
-      Faixa de cotações nas 10 seguradoras: de <strong>${formatarMoeda(menorValor)}/ano</strong> até <strong>${formatarMoeda(maiorValor)}/ano</strong>. Clique em <strong>Contratar</strong> na seguradora desejada.
+      Score de Risco (0 a 99): quanto menor, menor o risco. Faixa nas 10 seguradoras: de <strong>${formatarMoeda(menorValor)}/ano</strong> até <strong>${formatarMoeda(maiorValor)}/ano</strong>.
     </small>
   `;
 
@@ -682,7 +896,7 @@ function renderizarCotacoes(): void {
           ${formatarMoeda(cot.valorAnual)} <small style="font-size: 0.85rem; font-weight: 500;">/ano</small>
         </div>
         <div class="quote-detail">
-          <strong>Parcela aprox.:</strong> ${formatarMoeda(cot.valorMensal)}/mês · <strong>Score IA:</strong> ${cot.scoreRiscoIA}/100
+          <strong>Parcela aprox.:</strong> ${formatarMoeda(cot.valorMensal)}/mês · <strong>Score de Risco:</strong> ${cot.scoreRiscoIA}/100
         </div>
         <p class="quote-detail"><strong>Critérios aplicados:</strong> ${cot.motivoPrincipal}</p>
         <div style="margin-top: 12px;">
@@ -715,16 +929,20 @@ function selecionarAba(aba: string): void {
     pageSubtitle.textContent = infoAba.subtitulo;
   }
 
-  if (aba === 'seguradora') {
+  if (aba === 'criterios') {
+    renderizarCriteriosSeguradoras();
+  } else if (aba === 'aprovadas-ia') {
+    renderizarAprovadasIA();
+  } else if (aba === 'seguradoras') {
     renderizarSolicitacoesSeguradora();
-  } else if (aba === 'finalizado') {
+  } else if (aba === 'apolices') {
     renderizarApolicesFinalizadas();
   }
 }
 
 function configurarEventosCotacoes(): void {
   const lista = document.getElementById('lista-cotacoes');
-  lista?.addEventListener('click', (event) => {
+  lista?.addEventListener('click', async (event) => {
     const alvo = event.target as HTMLElement | null;
     const botao = alvo?.closest<HTMLButtonElement>('.btn-contratar');
     if (!botao || !ultimasCotacoesAtuais) return;
@@ -736,16 +954,46 @@ function configurarEventosCotacoes(): void {
     if (!cotacaoEscolhida) return;
 
     const cliente = ultimasCotacoesAtuais.cliente;
-    const avaliacao = avaliarRiscoContratacaoIA(cliente, cotacaoEscolhida);
+    botao.disabled = true;
+    botao.textContent = 'Avaliando com IA...';
 
-    if (!avaliacao.temRisco) {
+    const avaliacao = await avaliarContratacaoComIA(cliente, cotacaoEscolhida);
+
+    botao.disabled = false;
+    botao.textContent = 'Contratar';
+
+    if (avaliacao.decisao === 'APROVADO_DIRETO') {
       pagamentoPendente = {
         cliente,
         cotacao: cotacaoEscolhida,
         origemAprovacao: 'Aprovado direto pela IA'
       };
+      registrarAprovacaoIA(
+        cliente,
+        cotacaoEscolhida,
+        'Aprovação Direta IA',
+        `${avaliacao.motivo} [${avaliacao.motor}]`
+      );
       exibirAvisoFluxo(
-        `<strong>IA aprovou a contratação!</strong> Perfil validado sem alertas de risco para <strong>${cotacaoEscolhida.seguradora}</strong>. Escolha a forma de pagamento abaixo.`,
+        `<strong>A Seguradora aceitou (Aprovação Direta IA)!</strong> Registrado em <strong>4. Aprovadas IA</strong>. Escolha a forma de pagamento abaixo.`,
+        '#34D399'
+      );
+      renderizarPainelPagamento();
+      document.getElementById('painel-pagamento')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else if (avaliacao.decisao === 'ACEITE_AUTOMATICO_IA') {
+      pagamentoPendente = {
+        cliente,
+        cotacao: cotacaoEscolhida,
+        origemAprovacao: 'Aprovado pelo Aceite Automático da IA'
+      };
+      registrarAprovacaoIA(
+        cliente,
+        cotacaoEscolhida,
+        'Aceite Automático IA',
+        `${avaliacao.motivo} [${avaliacao.motor}]`
+      );
+      exibirAvisoFluxo(
+        `<strong>A Seguradora aceitou via Aceite Automático da IA!</strong> (${avaliacao.motivo}). Registrado em <strong>4. Aprovadas IA</strong> — escolha a forma de pagamento abaixo.`,
         '#34D399'
       );
       renderizarPainelPagamento();
@@ -758,7 +1006,7 @@ function configurarEventosCotacoes(): void {
         id: `SOL-${String(solicitacoesSeguradora.length + 1).padStart(3, '0')}`,
         cliente,
         cotacao: cotacaoEscolhida,
-        motivoRiscoIA: avaliacao.motivoRisco,
+        motivoRiscoIA: `${avaliacao.motivo} [${avaliacao.motor}]`,
         status: 'AGUARDANDO SEGURADORA'
       };
 
@@ -766,7 +1014,7 @@ function configurarEventosCotacoes(): void {
       renderizarSolicitacoesSeguradora();
 
       exibirAvisoFluxo(
-        `<strong>Atenção — Contratação enviada para análise!</strong> A IA identificou risco (<em>${avaliacao.motivoRisco}</em>) e encaminhou a solicitação <strong>${novaSolicitacao.id}</strong> para a aba <strong>3. Seguradora</strong> decidir o aceite.`,
+        `<strong>Caso complexo enviado para triagem!</strong> A IA identificou fatores que exigem análise da seguradora (<em>${avaliacao.motivo}</em>). Solicitação <strong>${novaSolicitacao.id}</strong> enviada para a aba <strong>5. Seguradoras</strong>.`,
         '#FBBF24'
       );
     }
@@ -792,7 +1040,7 @@ function configurarEventosCotacoes(): void {
   });
 }
 
-function configurarEventosSeguradora(): void {
+function configurarEventosSeguradoras(): void {
   const container = document.getElementById('lista-solicitacoes-seguradora');
   container?.addEventListener('click', (event) => {
     const alvo = event.target as HTMLElement | null;
@@ -820,7 +1068,7 @@ function configurarEventosSeguradora(): void {
       pagamentoPendente = {
         cliente: solicitacao.cliente,
         cotacao: solicitacao.cotacao,
-        origemAprovacao: 'Aprovado pela Seguradora após análise de risco'
+        origemAprovacao: 'Aprovado pela Seguradora após triagem'
       };
       exibirAvisoFluxo(
         `<strong>Seguradora aprovou a solicitação ${solicitacao.id}!</strong> Agora escolha a forma de pagamento (Pix, Boleto ou Cartão de Crédito) para emitir a apólice.`,
@@ -847,9 +1095,10 @@ function configurarAbas(): void {
 }
 
 function iniciarApp(): void {
+  renderizarCriteriosSeguradoras();
   configurarAbas();
   configurarEventosCotacoes();
-  configurarEventosSeguradora();
+  configurarEventosSeguradoras();
 
   const btnGerar = document.getElementById('btn-gerar-base');
   btnGerar?.addEventListener('click', () => {
