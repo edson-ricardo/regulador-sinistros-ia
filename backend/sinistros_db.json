@@ -1,0 +1,14 @@
+[
+  { "idade_condutor": 21, "idade_veiculo": 12, "importado": 0, "valor_veiculo": 45000, "qtd_sinistros": 2, "alto_risco": 1 },
+  { "idade_condutor": 23, "idade_veiculo": 18, "importado": 1, "valor_veiculo": 78000, "qtd_sinistros": 3, "alto_risco": 1 },
+  { "idade_condutor": 34, "idade_veiculo": 5, "importado": 0, "valor_veiculo": 85000, "qtd_sinistros": 0, "alto_risco": 0 },
+  { "idade_condutor": 42, "idade_veiculo": 7, "importado": 0, "valor_veiculo": 95000, "qtd_sinistros": 1, "alto_risco": 0 },
+  { "idade_condutor": 51, "idade_veiculo": 4, "importado": 1, "valor_veiculo": 130000, "qtd_sinistros": 0, "alto_risco": 0 },
+  { "idade_condutor": 74, "idade_veiculo": 20, "importado": 0, "valor_veiculo": 35000, "qtd_sinistros": 2, "alto_risco": 1 },
+  { "idade_condutor": 29, "idade_veiculo": 8, "importado": 0, "valor_veiculo": 62000, "qtd_sinistros": 0, "alto_risco": 0 },
+  { "idade_condutor": 19, "idade_veiculo": 16, "importado": 0, "valor_veiculo": 32000, "qtd_sinistros": 2, "alto_risco": 1 },
+  { "idade_condutor": 46, "idade_veiculo": 9, "importado": 0, "valor_veiculo": 74000, "qtd_sinistros": 0, "alto_risco": 0 },
+  { "idade_condutor": 68, "idade_veiculo": 6, "importado": 0, "valor_veiculo": 88000, "qtd_sinistros": 1, "alto_risco": 0 },
+  { "idade_condutor": 22, "idade_veiculo": 19, "importado": 1, "valor_veiculo": 67000, "qtd_sinistros": 3, "alto_risco": 1 },
+  { "idade_condutor": 38, "idade_veiculo": 3, "importado": 0, "valor_veiculo": 112000, "qtd_sinistros": 0, "alto_risco": 0 }
+]
