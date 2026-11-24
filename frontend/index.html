@@ -19,21 +19,29 @@
       </div>
 
       <nav class="nav-menu" id="nav-menu">
-        <button class="nav-item active" data-tab="clientes">
+        <button class="nav-item active" data-tab="criterios">
           <span class="nav-dot"></span>
-          <span>1. Clientes</span>
+          <span>1. Critérios</span>
+        </button>
+        <button class="nav-item" data-tab="clientes">
+          <span class="nav-dot"></span>
+          <span>2. Clientes</span>
         </button>
         <button class="nav-item" data-tab="cotacoes">
           <span class="nav-dot"></span>
-          <span>2. Cotações</span>
+          <span>3. Cotações</span>
         </button>
-        <button class="nav-item" data-tab="seguradora">
+        <button class="nav-item" data-tab="aprovadas-ia">
           <span class="nav-dot"></span>
-          <span>3. Seguradora</span>
+          <span>4. Aprovadas IA</span>
         </button>
-        <button class="nav-item" data-tab="finalizado">
+        <button class="nav-item" data-tab="seguradoras">
           <span class="nav-dot"></span>
-          <span>4. Finalizado</span>
+          <span>5. Seguradoras</span>
+        </button>
+        <button class="nav-item" data-tab="apolices">
+          <span class="nav-dot"></span>
+          <span>6. Apólices</span>
         </button>
       </nav>
 
@@ -50,23 +58,38 @@
     <main class="main-content">
       <header class="topbar">
         <div>
-          <h2 id="page-title">Clientes — Base de Perfis (500)</h2>
-          <p id="page-subtitle">Visão de gestão da base de clientes com idade do condutor, ano do carro, valor do veículo e sinistros.</p>
+          <h2 id="page-title">Critérios das Seguradoras & Aceite</h2>
+          <p id="page-subtitle">Visualização dos parâmetros, pesos e limites aplicados por cada seguradora na precificação e análise de risco.</p>
         </div>
         <div class="topbar-actions">
           <span class="counter-pill">Clientes gerados: <strong id="total-registros">0</strong></span>
         </div>
       </header>
 
-      <!-- ABA 1: CLIENTES -->
-      <section id="tab-clientes" class="tab-panel active">
+      <!-- ABA 1: CRITÉRIOS -->
+      <section id="tab-criterios" class="tab-panel active">
+        <div class="card highlight-card mb-24">
+          <div>
+            <h3>Matriz Visual de Critérios por Seguradora & Aceite Automático IA</h3>
+            <p>
+              Cada seguradora possui uma <strong>taxa base</strong>, multiplicadores de risco e um <strong>limite de idade do carro</strong> para cobertura compreensiva.
+              Casos moderados passam pelo <strong>Aceite Automático da IA</strong> (aba <strong>4. Aprovadas IA</strong>); casos complexos vão para triagem na aba <strong>5. Seguradoras</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div id="grade-criterios-seguradoras" class="quotes-grid"></div>
+      </section>
+
+      <!-- ABA 2: CLIENTES -->
+      <section id="tab-clientes" class="tab-panel">
         <div class="card highlight-card mb-24">
           <div class="highlight-row">
             <div>
               <h3>Gerador de Base (500 Clientes)</h3>
               <p>
-                Aplica as faixas de idade do condutor (18–25 alto risco, 26–69 intermediário, 70+ sênior/análise)
-                e idade/perfil do veículo para alimentar as cotações, a análise da IA e a fila da seguradora.
+                Aplica as faixas de idade do condutor (18–25 alto risco, 26–69 intermediário, 70+ sênior)
+                e idade/perfil do veículo para alimentar as cotações, o aceite automático da IA e a triagem das seguradoras.
               </p>
             </div>
             <button id="btn-gerar-base" class="btn btn-primary">
@@ -106,7 +129,7 @@
         </div>
       </section>
 
-      <!-- ABA 2: COTAÇÕES -->
+      <!-- ABA 3: COTAÇÕES -->
       <section id="tab-cotacoes" class="tab-panel">
         <div class="card highlight-card mb-24">
           <div class="highlight-row">
@@ -114,7 +137,7 @@
               <h3>Motor de Cotações (Visão do Cliente)</h3>
               <p>
                 Digite o número do cliente (1 a 500), compare as 10 seguradoras e clique em <strong>Contratar</strong>.
-                Se a IA aprovar, você segue para o <strong>pagamento</strong>; se a IA apontar risco, vai para análise na aba <strong>3. Seguradora</strong>.
+                Se a IA aprovar ou aceitar automaticamente, você já vai para o <strong>pagamento</strong>; se for complexo, segue para triagem na aba <strong>5. Seguradoras</strong>.
               </p>
             </div>
             <div class="cotacao-controls">
@@ -143,29 +166,47 @@
         </div>
       </section>
 
-      <!-- ABA 3: SEGURADORA -->
-      <section id="tab-seguradora" class="tab-panel">
+      <!-- ABA 4: APROVADAS IA -->
+      <section id="tab-aprovadas-ia" class="tab-panel">
         <div class="card highlight-card mb-24">
           <div>
-            <h3>Mesa de Aceite da Seguradora (Casos de Risco Sinalizados pela IA)</h3>
+            <h3>Contratações Aprovadas / Aceitas Automaticamente pela IA</h3>
             <p>
-              Apenas as contratações que a IA considerou de risco chegam aqui. A seguradora decide se <strong>Aprova</strong> ou <strong>Recusa</strong>.
+              Histórico de contratações aprovadas direto pela IA ou aceitas pelo <strong>Critério de Aceite Automático da IA</strong> sem necessidade de triagem manual da seguradora.
+            </p>
+          </div>
+        </div>
+
+        <div id="lista-aprovadas-ia">
+          <div class="card empty-state">
+            Nenhuma contratação aprovada/aceita pela IA ainda.
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 5: SEGURADORAS -->
+      <section id="tab-seguradoras" class="tab-panel">
+        <div class="card highlight-card mb-24">
+          <div>
+            <h3>Triagem das Seguradoras (Casos Complexos / Não Cobertos pelo Aceite Automático da IA)</h3>
+            <p>
+              Apenas as contratações que a IA considerou complexas ou de maior risco chegam aqui para a seguradora <strong>Aprovar</strong> ou <strong>Recusar</strong>.
             </p>
           </div>
         </div>
 
         <div id="lista-solicitacoes-seguradora">
           <div class="card empty-state">
-            Nenhuma solicitação de risco enviada pela IA para a seguradora no momento.
+            Nenhuma solicitação complexa enviada para triagem das seguradoras no momento.
           </div>
         </div>
       </section>
 
-      <!-- ABA 4: FINALIZADO -->
-      <section id="tab-finalizado" class="tab-panel">
+      <!-- ABA 6: APÓLICES -->
+      <section id="tab-apolices" class="tab-panel">
         <div class="card highlight-card mb-24">
           <div>
-            <h3>Apólices Finalizadas (Documento do Seguro)</h3>
+            <h3>Apólices Emitidas (Documento do Seguro)</h3>
             <p>
               Visualize aqui os documentos de apólice gerados após a aprovação e escolha da forma de pagamento.
             </p>
@@ -174,7 +215,7 @@
 
         <div id="lista-apolices-finalizadas">
           <div class="card empty-state">
-            Nenhuma apólice finalizada ainda. Conclua uma contratação com pagamento para gerar o documento aqui.
+            Nenhuma apólice emitida ainda. Conclua uma contratação com pagamento para gerar o documento aqui.
           </div>
         </div>
       </section>
