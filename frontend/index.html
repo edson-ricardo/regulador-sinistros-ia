@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ClaimsAI — MVP Seguros & Cotações</title>
+  <title>RiscoZero IA — Seguros & Decisão Autônoma</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -11,36 +11,36 @@
     <!-- MENU LATERAL -->
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-icon">IA</div>
+        <div class="brand-icon">RZ</div>
         <div>
-          <h1>ClaimsAI</h1>
-          <span>MVP Seguros & Risco</span>
+          <h1>RiscoZero IA</h1>
+          <span>Seguros & Decisão Autônoma</span>
         </div>
       </div>
 
       <nav class="nav-menu" id="nav-menu">
         <button class="nav-item active" data-tab="clientes">
           <span class="nav-dot"></span>
-          <span>1. Clientes (500)</span>
+          <span>1. Clientes</span>
         </button>
         <button class="nav-item" data-tab="cotacoes">
           <span class="nav-dot"></span>
           <span>2. Cotações</span>
         </button>
-        <button class="nav-item" data-tab="comportamento">
+        <button class="nav-item" data-tab="seguradora">
           <span class="nav-dot"></span>
-          <span>3. Comportamento</span>
+          <span>3. Seguradora</span>
         </button>
-        <button class="nav-item" data-tab="diagnostico">
+        <button class="nav-item" data-tab="finalizado">
           <span class="nav-dot"></span>
-          <span>4. Diagnóstico & Seguros</span>
+          <span>4. Finalizado</span>
         </button>
       </nav>
 
       <div class="sidebar-footer">
         <div class="status-badge">
           <span class="pulse"></span>
-          MVP Ativo
+          RiscoZero IA Ativa
         </div>
         <small>Base: 500 registros</small>
       </div>
@@ -50,23 +50,23 @@
     <main class="main-content">
       <header class="topbar">
         <div>
-          <h2 id="page-title">Clientes — Base MVP (500)</h2>
-          <p id="page-subtitle">Gere a base de 500 clientes com idade do condutor, ano do carro, valor do veículo e sinistros.</p>
+          <h2 id="page-title">Clientes — Base de Perfis (500)</h2>
+          <p id="page-subtitle">Visão de gestão da base de clientes com idade do condutor, ano do carro, valor do veículo e sinistros.</p>
         </div>
         <div class="topbar-actions">
           <span class="counter-pill">Clientes gerados: <strong id="total-registros">0</strong></span>
         </div>
       </header>
 
-      <!-- TELA 1: CLIENTES (500) -->
+      <!-- ABA 1: CLIENTES -->
       <section id="tab-clientes" class="tab-panel active">
         <div class="card highlight-card mb-24">
           <div class="highlight-row">
             <div>
-              <h3>Gerador de Base MVP (500 Clientes)</h3>
+              <h3>Gerador de Base (500 Clientes)</h3>
               <p>
-                Aplica as faixas de idade do condutor (18–25 alto risco, 26–69/79 intermediário, 70+ análise/vistoria)
-                e idade do veículo (até 10–15 anos padrão, importados com limite menor e 15–30+ anos com restrição/cobertura específica).
+                Aplica as faixas de idade do condutor (18–25 alto risco, 26–69 intermediário, 70+ sênior/análise)
+                e idade/perfil do veículo para alimentar as cotações, a análise da IA e a fila da seguradora.
               </p>
             </div>
             <button id="btn-gerar-base" class="btn btn-primary">
@@ -106,15 +106,15 @@
         </div>
       </section>
 
-      <!-- TELA 2: COTAÇÕES -->
+      <!-- ABA 2: COTAÇÕES -->
       <section id="tab-cotacoes" class="tab-panel">
         <div class="card highlight-card mb-24">
           <div class="highlight-row">
             <div>
-              <h3>Motor de Cotações & Contratação Autônoma IA</h3>
+              <h3>Motor de Cotações (Visão do Cliente)</h3>
               <p>
-                Digite o número do cliente (1 a 500) para comparar as 10 seguradoras e simular a contratação com
-                <strong>decisão autônoma da IA</strong> (sem intervenção humana).
+                Digite o número do cliente (1 a 500), compare as 10 seguradoras e clique em <strong>Contratar</strong>.
+                Se a IA aprovar, você segue para o <strong>pagamento</strong>; se a IA apontar risco, vai para análise na aba <strong>3. Seguradora</strong>.
               </p>
             </div>
             <div class="cotacao-controls">
@@ -130,9 +130,11 @@
           <p id="erro-numero-cliente" class="hidden" style="color: #F87171; margin-top: 10px; font-size: 0.9rem;"></p>
         </div>
 
-        <div id="resumo-cliente-cotacao" class="card mb-24 hidden"></div>
+        <div id="aviso-fluxo-cotacao" class="card mb-24 hidden"></div>
 
-        <div id="painel-contratacao-ia" class="card mb-24 hidden" style="border-left: 4px solid #38BDF8;"></div>
+        <div id="painel-pagamento" class="card mb-24 hidden" style="border-left: 4px solid #34D399;"></div>
+
+        <div id="resumo-cliente-cotacao" class="card mb-24 hidden"></div>
 
         <div class="quotes-grid" id="lista-cotacoes">
           <div class="card empty-state">
@@ -141,19 +143,39 @@
         </div>
       </section>
 
-      <!-- TELA 3: COMPORTAMENTO -->
-      <section id="tab-comportamento" class="tab-panel">
-        <div class="card placeholder-card">
-          <h3>Comportamento da Base (Próxima etapa)</h3>
-          <p>Aqui veremos a distribuição por faixa etária, idade do veículo e histórico de sinistros.</p>
+      <!-- ABA 3: SEGURADORA -->
+      <section id="tab-seguradora" class="tab-panel">
+        <div class="card highlight-card mb-24">
+          <div>
+            <h3>Mesa de Aceite da Seguradora (Casos de Risco Sinalizados pela IA)</h3>
+            <p>
+              Apenas as contratações que a IA considerou de risco chegam aqui. A seguradora decide se <strong>Aprova</strong> ou <strong>Recusa</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div id="lista-solicitacoes-seguradora">
+          <div class="card empty-state">
+            Nenhuma solicitação de risco enviada pela IA para a seguradora no momento.
+          </div>
         </div>
       </section>
 
-      <!-- TELA 4: DIAGNÓSTICO & SEGUROS -->
-      <section id="tab-diagnostico" class="tab-panel">
-        <div class="card placeholder-card">
-          <h3>Diagnóstico & Decisão Autônoma (Próxima etapa)</h3>
-          <p>Aqui integraremos o backend em Python (FastAPI + scikit-learn) e o <code>sinistros_db.json</code>.</p>
+      <!-- ABA 4: FINALIZADO -->
+      <section id="tab-finalizado" class="tab-panel">
+        <div class="card highlight-card mb-24">
+          <div>
+            <h3>Apólices Finalizadas (Documento do Seguro)</h3>
+            <p>
+              Visualize aqui os documentos de apólice gerados após a aprovação e escolha da forma de pagamento.
+            </p>
+          </div>
+        </div>
+
+        <div id="lista-apolices-finalizadas">
+          <div class="card empty-state">
+            Nenhuma apólice finalizada ainda. Conclua uma contratação com pagamento para gerar o documento aqui.
+          </div>
         </div>
       </section>
     </main>
