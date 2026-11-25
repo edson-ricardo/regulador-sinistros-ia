@@ -21,17 +21,17 @@ pip install fastapi uvicorn scikit-learn
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
+#### 1.1 - Observação: comando único
+
+```
+cd /workspaces/regulador-sinistros-ia/backend && source .venv/bin/activate && nohup uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 & cd /workspaces/regulador-sinistros-ia && npx tsc -p frontend/tsconfig.json && cd frontend && python3 -m http.server 5500
+```
+
 ### 2. Terminal 2 — Compilar o TypeScript e Subir o Frontend (Porta 5500)
 
 ```bash
 npx tsc -p frontend/tsconfig.json
 cd frontend && python3 -m http.server 5500
-```
-
-#### 2.1 - Observação: comando único
-
-```
-cd /workspaces/regulador-sinistros-ia/backend && source .venv/bin/activate && nohup uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 & cd /workspaces/regulador-sinistros-ia && npx tsc -p frontend/tsconfig.json && cd frontend && python3 -m http.server 5500
 ```
 
 ### 3. Deixar as Portas Públicas e Conectar a API
