@@ -1,6 +1,6 @@
 const ANO_ATUAL = 2026;
 const QUANTIDADE_CLIENTES = 500;
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = 'https://symmetrical-enigma-q9vp7w59xgq39qj-8000.app.github.dev';
 
 type FaixaCondutor = 'Jovem (18–25)' | 'Intermediária (26–69)' | 'Sênior (70+)';
 type PerfilVeiculo = 'Padrão (até 15 anos)' | 'Importado (limite menor)' | 'Antigo / Restrito (15–35+ anos)';
@@ -138,6 +138,10 @@ function formatarMoeda(valor: number): string {
 
 function formatarPercentualTaxa(taxa: number): string {
   return (taxa * 100).toFixed(1).replace('.', ',') + '%';
+}
+
+function buscarApoliceAtivaCliente(clienteId: string): ApoliceFinalizada | undefined {
+  return apolicesFinalizadas.find((ap) => ap.cliente.id === clienteId);
 }
 
 function renderizarCriteriosSeguradoras(): void {
@@ -521,14 +525,6 @@ interface ResultadoDecisaoIA {
   motor: string;
 }
 
-/**
- * Critério de Aceite Automático da IA:
- * - Se há complexidade alta (2+ sinistros, carro acima do limite de anos da seguradora, ou score >= 65),
- *   a IA não está segura sozinha e envia para TRIAGEM_SEGURADORA (aba 5).
- * - Se há pontos moderados (score entre 30 e 64 ou faixa etária/importado com até 1 sinistro e carro dentro do limite),
- *   a IA aplica o Aceite Automático (ACEITE_AUTOMATICO_IA -> aba 4. Aprovadas IA + libera pagamento).
- * - Se não há fatores moderados nem complexos, é APROVADO_DIRETO (aba 4. Aprovadas IA + libera pagamento).
- */
 function classificarDecisaoLocalFallback(
   cliente: Cliente,
   cotacao: ResultadoCotacao,
@@ -666,8 +662,13 @@ function finalizarEmissaoApolice(
   ocultarPainelPagamento();
   renderizarApolicesFinalizadas();
 
+  const inputNum = document.getElementById('input-numero-cliente') as HTMLInputElement | null;
+  if (inputNum && inputNum.value.trim()) {
+    renderizarCotacoes();
+  }
+
   exibirAvisoFluxo(
-    `<strong>Contratação concluída!</strong> Apólice <strong>${apolice.numeroApolice}</strong> emitida via <strong>${formaPagamento}</strong>. Clique na aba <strong>6. Apólices</strong> para visualizar o documento completo.`,
+    `<strong>Contratação concluída!</strong> Apólice <strong>${apolice.numeroApolice}</strong> emitida via <strong>${formaPagamento}</strong>. Clique na aba <strong>6. Apólices</strong> para visualizar o documento completo. Como este cliente já possui apólice ativa, novas contratações estão bloqueadas neste MVP.`,
     '#34D399'
   );
 
@@ -860,9 +861,19 @@ function renderizarCotacoes(): void {
   }
 
   exibirErroCliente(null);
-  ocultarAvisoFluxo();
   ocultarPainelPagamento();
   pagamentoPendente = null;
+
+  const apoliceExistente = buscarApoliceAtivaCliente(cliente.id);
+
+  if (apoliceExistente) {
+    exibirAvisoFluxo(
+      `<strong>Cliente já possui plano contratado!</strong> O cliente <strong>${cliente.nome} (${cliente.id})</strong> já emitiu a apólice <strong>${apoliceExistente.numeroApolice}</strong> (${apoliceExistente.cotacao.seguradora}). Nesta versão MVP, não é possível contratar um novo plano para o mesmo cliente — essa funcionalidade será implementada posteriormente.`,
+      '#38BDF8'
+    );
+  } else {
+    ocultarAvisoFluxo();
+  }
 
   const cotacoes = SEGURADORAS_BRASIL
     .map((politica) => calcularCotacaoPorEmpresa(cliente, politica))
@@ -885,6 +896,11 @@ function renderizarCotacoes(): void {
     </small>
   `;
 
+  const botaoBloqueadoAttr = apoliceExistente
+    ? 'disabled style="width: 100%; opacity: 0.55; cursor: not-allowed;"'
+    : 'style="width: 100%;"';
+  const textoBotao = apoliceExistente ? 'Plano já contratado (MVP)' : 'Contratar';
+
   lista.innerHTML = cotacoes
     .map((cot, index) => `
       <div class="quote-card">
@@ -904,9 +920,9 @@ function renderizarCotacoes(): void {
             type="button"
             class="btn btn-primary btn-contratar"
             data-seguradora-id="${cot.seguradoraId}"
-            style="width: 100%;"
+            ${botaoBloqueadoAttr}
           >
-            Contratar
+            ${textoBotao}
           </button>
         </div>
       </div>
@@ -947,13 +963,23 @@ function configurarEventosCotacoes(): void {
     const botao = alvo?.closest<HTMLButtonElement>('.btn-contratar');
     if (!botao || !ultimasCotacoesAtuais) return;
 
+    const cliente = ultimasCotacoesAtuais.cliente;
+    const apoliceExistente = buscarApoliceAtivaCliente(cliente.id);
+
+    if (apoliceExistente) {
+      exibirAvisoFluxo(
+        `<strong>Contratação bloqueada (MVP):</strong> o cliente <strong>${cliente.nome} (${cliente.id})</strong> já possui a apólice <strong>${apoliceExistente.numeroApolice}</strong>. A contratação de um novo plano para o mesmo cliente será implementada posteriormente.`,
+        '#38BDF8'
+      );
+      return;
+    }
+
     const seguradoraId = botao.dataset.seguradoraId;
     const cotacaoEscolhida = ultimasCotacoesAtuais.cotacoes.find(
       (c) => c.seguradoraId === seguradoraId
     );
     if (!cotacaoEscolhida) return;
 
-    const cliente = ultimasCotacoesAtuais.cliente;
     botao.disabled = true;
     botao.textContent = 'Avaliando com IA...';
 
@@ -1054,6 +1080,13 @@ function configurarEventosSeguradoras(): void {
     if (!solicitacao || solicitacao.status !== 'AGUARDANDO SEGURADORA') return;
 
     if (btnAprovar) {
+      const apoliceExistente = buscarApoliceAtivaCliente(solicitacao.cliente.id);
+      if (apoliceExistente) {
+        solicitacao.status = 'RECUSADA PELA SEGURADORA';
+        renderizarSolicitacoesSeguradora();
+        return;
+      }
+
       solicitacao.status = 'APROVADA PELA SEGURADORA';
       renderizarSolicitacoesSeguradora();
 
