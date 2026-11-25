@@ -28,6 +28,12 @@ npx tsc -p frontend/tsconfig.json
 cd frontend && python3 -m http.server 5500
 ```
 
+#### 2.1 - Observação: comando único
+
+```
+cd /workspaces/regulador-sinistros-ia/backend && source .venv/bin/activate && nohup uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 & cd /workspaces/regulador-sinistros-ia && npx tsc -p frontend/tsconfig.json && cd frontend && python3 -m http.server 5500
+```
+
 ### 3. Deixar as Portas Públicas e Conectar a API
 
 1. Abra a aba **Portas** (`Ports`) no Codespaces.
